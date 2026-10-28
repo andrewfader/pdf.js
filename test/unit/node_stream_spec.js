@@ -153,4 +153,21 @@ describe("node_stream", function () {
     expect(isRangeSupported).toBeFalse();
     expect(len).toEqual(smallLength);
   });
+
+  it("cancel after a failed read doesn't cause an unhandled rejection", async function () {
+    const stream = new PDFNodeStream({
+      url: new URL("./test/pdfs/non-existent.pdf", cwdURL),
+      rangeChunkSize: 65536,
+      disableStream: true,
+      disableRange: false,
+    });
+    const rangeReader = stream.getRangeReader(0, 65536);
+    await expectAsync(rangeReader.read()).toBeRejected();
+
+    rangeReader.cancel(new AbortException("Don't need rangeReader."));
+    // Allow any unhandled rejections to be reported.
+    await new Promise(resolve => {
+      setTimeout(resolve, 0);
+    });
+  });
 });

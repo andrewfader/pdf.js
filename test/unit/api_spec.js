@@ -815,6 +815,27 @@ describe("api", function () {
       await loadingTask.destroy();
     });
 
+    it("creates pdf doc from PDF file where an invalid XRef stream precedes a valid one", async function () {
+      const pdfData = await DefaultFileReaderFactory.fetch({
+        path: TEST_PDFS_PATH + "empty.pdf",
+      });
+      // Overwrite the linearization dictionary and the first-page XRef stream,
+      // such that /startxref points to the hint stream; the /Root is only
+      // listed in the main XRef stream.
+      pdfData.fill(/* space = */ 0x20, 16, 431);
+
+      const loadingTask = getDocument({ data: pdfData });
+      expect(loadingTask).toBeInstanceOf(PDFDocumentLoadingTask);
+
+      const pdfDocument = await loadingTask.promise;
+      expect(pdfDocument.numPages).toEqual(1);
+
+      const page = await pdfDocument.getPage(1);
+      expect(page).toBeInstanceOf(PDFPageProxy);
+
+      await loadingTask.destroy();
+    });
+
     it("creates pdf doc from PDF file with inaccessible /Pages tree", async function () {
       const loadingTask = getDocument(
         buildGetDocumentParams("poppler-395-0-fuzzed.pdf")

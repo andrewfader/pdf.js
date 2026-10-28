@@ -412,6 +412,22 @@ class WebServer {
         response.writeHead(200);
         fs.createReadStream(fileURL, { flags: "rs" }).pipe(response);
         return;
+      case "preceding-range": {
+        // The same length of data, but from the preceding range.
+        stream.destroy();
+        const begin = Math.max(0, 2 * start - end);
+        response.setHeader(
+          "Content-Range",
+          `bytes ${begin}-${begin + end - start - 1}/${fileSize}`
+        );
+        response.writeHead(206);
+        fs.createReadStream(fileURL, {
+          flags: "rs",
+          start: begin,
+          end: begin + end - start - 1,
+        }).pipe(response);
+        return;
+      }
     }
     response.writeHead(206);
     stream.pipe(response);

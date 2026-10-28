@@ -153,7 +153,14 @@ class PDFNetworkStream extends BasePDFStream {
     }
     if (xhrStatus === PARTIAL_CONTENT_RESPONSE) {
       const rangeHeader = xhr.getResponseHeader("Content-Range");
-      if (/bytes \d+-\d+\/\d+/.test(rangeHeader)) {
+      const contentRange = /bytes (\d+)-\d+\/\d+/.exec(rangeHeader);
+      if (
+        contentRange &&
+        parseInt(contentRange[1], 10) !== pendingRequest.begin
+      ) {
+        // The server sent a different range than the one requested.
+        pendingRequest.onError(xhrStatus);
+      } else if (contentRange) {
         pendingRequest.onDone(chunk);
       } else {
         warn(`Missing or invalid "Content-Range" header.`);
